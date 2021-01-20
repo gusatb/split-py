@@ -300,6 +300,8 @@ def get_areas(split_line, state, color):
     point_thetas = list(zip(points, thetas))
     point_thetas.sort(key=lambda x: x[1])
 
+    if len(points) != len(thetas):
+        return None
     points, thetas = list(zip(*point_thetas))
 
     # Split the areas

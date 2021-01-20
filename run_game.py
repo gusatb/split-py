@@ -48,6 +48,18 @@ class UIState:
         self.zoom = 50
         self.pan = [100, 125]
 
+    def reset(self):
+        self.click_state = 2 if self.state.area_split_line else 0
+        self.first_point = None
+        self.first_line = None
+        self.second_point = None
+        self.second_line = None
+        self.area_choice = None
+        self.area_cache = []
+        self.last_area = None
+        self.hover_score = 0.0
+
+
 
 def color_translate(color_id):
     if color_id == -1:
@@ -300,6 +312,8 @@ def main():
                     ui_state.zoom *= 1.5
                 elif event.button == 5:
                     ui_state.zoom /= 1.5
+                elif event.button == 3:
+                    ui_state.reset()
                 else:
                     mouse_click(mouse_position, ui_state)
             if event.type == pygame.MOUSEMOTION:
