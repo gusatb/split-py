@@ -124,25 +124,6 @@ class Area:
             if not clear_path(p, point, state, ignore_lines):
                 return False
         return True
-        # theta_diffs = []
-        # print('cs')
-        # for i in range(len(self.points)):
-        #     p1 = self.points[i]
-        #     p2 = self.points[(i+1)%len(self.points)]
-        #     # theta_1 = math.atan((p1.y - point.y) / (p1.x - point.x + EPSILON))
-        #     theta_1 = fix_tan(p1, point)
-        #     # theta_2 = math.atan((p2.y - point.y) / (p2.x - point.x + EPSILON))
-        #     theta_2 = fix_tan(p2, point)
-        #     theta_diff = theta_1 - theta_2
-        #     theta_diff += 2*math.pi
-        #     theta_diff %= 2*math.pi
-        #     if theta_diff > math.pi:
-        #         theta_diff = 2*math.pi - theta_diff
-        #     theta_diffs.append(theta_diff)
-        #     print(theta_1, theta_2, theta_diff)
-        # print('ce')
-        # return sum(theta_diffs) > 2*math.pi - 0.1
-
 
 
 class GameState:
@@ -319,33 +300,6 @@ def get_areas(split_line, state, color):
     return Area(area_1, color), Area(area_2, color)
 
 
-    # Find a line with two visible endpoints
-    # first_line = None
-    # for line in state.lines:
-    #     if clear_path(middle, line.endpoints[0], state) and clear_path(middle, line.endpoints[1], state):
-    #         first_line = line
-    #         break
-    # assert first_line is not None
-    # points = [first_line.endpoints[0]]
-    # current_point = first_line.endpoints[1]
-    # current_line = first_line
-    # while current_point != points[0]:
-    #     print([x.pair() for x in points])
-    #     print('Adding: ', current_point.pair())
-    #     assert current_point not in points
-    #     points.append(current_point)
-    #     # Search other lines for next point
-    #     for line in current_point.lines:
-    #         if line == current_line:
-    #             continue
-    #         ep = line.endpoints[1 - line.endpoints.index(current_point)]
-    #         if clear_path(middle, ep, state):
-    #             current_point = ep
-    #             current_line = line
-    #             break
-    # return points
-
-
 def split_line(old_line, new_point, state):
     """
 
@@ -387,11 +341,4 @@ def make_move(move, state):
         elif move.p1_line.color == state.next_player and move.p2_line.color == state.next_player:
             state.area_split_line = new_line
         state.next_player = 3 - state.next_player
-
-
-
-# Get End State
-
-
-
 

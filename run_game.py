@@ -17,7 +17,6 @@ BLUE = (0, 0, 255)
 
 # Fonts
 GAME_FONT = pygame.freetype.SysFont('courier', 20)
-# GAME_FONT = pygame.freetype.Font("your_font.ttf", 24)
 
 EPSILON = game.EPSILON
 
@@ -208,41 +207,6 @@ def mouse_move(pos, ui_state):
             ui_state.area_choice = None
 
 
-
-
-        # other_lines = ui_state.state.lines[:]
-        # other_lines.remove(ui_state.first_line)
-        # closest_points = [line.closest_point(pos) for line in other_lines]
-        # distances = [cp.distance(pos) for cp in closest_points]
-        # cp_line = list(zip(closest_points, other_lines, distances))
-        # cp_line.sort(key=lambda x: x[2])
-        #
-        # for closest_point, line, _ in cp_line:
-        #     created_line = game.GameLine(ui_state.first_point, closest_point, ui_state.state.next_player)
-        #     found_coll = False
-        #     # Check for collisions
-        #     for coll_line in other_lines:
-        #         if coll_line == line:
-        #             continue
-        #         if created_line.intersection(coll_line):
-        #             found_coll = True
-        #             break
-        #     if not found_coll:
-        #         break
-        #
-        # ui_state.second_point = closest_point
-        # ui_state.second_line = line
-
-
-# def display_message(content):
-#     pygame.time.delay(500)
-#     win.fill(WHITE)
-#     end_text = END_FONT.render(content, 1, BLACK)
-#     win.blit(end_text, ((WIDTH - end_text.get_width()) // 2, (WIDTH - end_text.get_height()) // 2))
-#     pygame.display.update()
-#     pygame.time.delay(3000)
-
-
 def transform_pair(pair, ui_state):
     return pair[0] * ui_state.zoom + ui_state.pan[0], pair[1] * ui_state.zoom + ui_state.pan[1]
 
@@ -274,21 +238,8 @@ def render(win, ui_state):
         draw_circle(win, second_line_color, ui_state.second_point.pair(), CIRCLE_SIZE, ui_state)
         draw_circle(win, ui_state.color_to_move, ui_state.second_point.pair(), CIRCLE_SIZE, ui_state, width=OUTLINE_SIZE)
 
-
-    # # Drawing X's and O's
-    # for image in images:
-    #     x, y, IMAGE = image
-    #     win.blit(IMAGE, (x - IMAGE.get_width() // 2, y - IMAGE.get_height() // 2))
-
     pygame.display.update()
 
-# class UIState:
-#     def __init__(self):
-#         self.state = game.GameState()
-#         self.state.new_game()
-#         self.click_state = 0 # 0 - waiting for first point, 1 - waiting for second point, 2 - waiting for area select
-#         self.color_to_move = RED
-#         self.first_point = None
 
 def main():
     win = pygame.display.set_mode((WIDTH, WIDTH))
