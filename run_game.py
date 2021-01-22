@@ -25,6 +25,51 @@ OUTLINE_SIZE = 2
 LINE_WIDTH = 3
 
 
+class GamePlayer:
+    """Represents a player.
+
+    A human playing locally making moves through the UI should use this class as is.
+    Extend these functions for AI, remote play, or alternate UI.
+
+    Attributes:
+        local_human: Whether to wait for a move through the UI or call get_move.
+    """
+    def __init__(self, local_human=True):
+        self.local_human = local_human
+
+    def choose_color(self, state):
+        """Returns whether to choose to play as Red.
+
+        Args:
+            state: GameState.
+        """
+        pass
+
+    def get_move(self, state):
+        """Returns a GameMove for the current color.
+
+        Args:
+            state: GameState to move in.
+        """
+        pass
+
+    def update_color_choice(self, choose_red):
+        """Makes update to internal state given other players move.
+
+        Args:
+            choose_red: Whether the other player chose red.
+        """
+        pass
+
+    def update_move(self, move):
+        """Makes update to internal state given other players move.
+
+        Args:
+            move: Move made by other player.
+        """
+        pass
+
+
 class UIState:
     """State of UI including GameState, and move being made.
 
@@ -45,8 +90,10 @@ class UIState:
         window: Pygame window to draw to.
         zoom: Amount to zoom when drawing to window.
         pan: Amount to pan when drawing window.
+        intro_state: Which stage of choosing the game is in: 0 - waiting for first line, 1 - waiting for color choice, 2 - normal game
+        players: List of GamePlayer.
     """
-    def __init__(self, window):
+    def __init__(self, window, players=[GamePlayer(), GamePlayer()]):
         self.state = game.GameState()
         self.state.new_game()
         self.click_state = 0
@@ -68,7 +115,47 @@ class UIState:
         self.zoom = 50
         self.pan = [100, 125]
 
-    def reset(self):
+        self.intro_state = 0
+        self.players = players
+
+    def can_draw_fill(self):
+        """Returns whether the local player can currently draw a line or choose an area."""
+        return self.players[self.state.next_player - 1].local_human and self.intro_state != 1
+
+    def can_choose_color(self):
+        """Returns whether the local player can currently choose a color."""
+        return self.players[self.state.next_player - 1].local_human and self.intro_state == 1
+
+    def choose_color(self, choose_red):
+        """Chooses color.
+
+        Args:
+            move: Whether to choose to play as Red.
+        """
+        assert self.intro_state == 1
+        other_player = self.players[2 - self.state.next_player]
+        if choose_red:
+            p0 = self.players.pop(0)
+            self.players.append(p0)
+        other_player.update_color_choice(choose_red)
+        self.intro_state = 2
+
+
+    def make_move(self, move):
+        """Makes given move.
+
+        Args:
+            move: GameMove to make.
+        """
+        assert self.intro_state != 1
+        other_player = self.players[2 - self.state.next_player]
+        self.state.make_move(move)
+        other_player.update_move(move)
+
+        if self.intro_state == 0:
+            self.intro_state = 1
+
+    def cancel_move(self):
         """Resets current move state. Does not effect GameState."""
         self.click_state = 2 if self.state.area_split_line else 0
         self.first_point = None
@@ -150,7 +237,7 @@ class UIState:
             if not self.state.is_legal_move(move):
                 self.click_state = 0
                 return
-            self.state.make_move(move)
+            self.make_move(move)
             if self.state.area_split_line is None:
                 self.click_state = 0
                 self.color_to_move = color_translate(self.state.next_player)
@@ -162,7 +249,7 @@ class UIState:
             move = game.GameMove(area=self.area_choice)
             if not self.state.is_legal_move(move):
                 return
-            self.state.make_move(move)
+            self.make_move(move)
             self.area_choice = None
             self.color_to_move = color_translate(self.state.next_player)
             self.click_state = 0
@@ -202,9 +289,6 @@ class UIState:
 
         elif self.click_state == 1:
             farthest_dist = self.state.width * math.sqrt(2) + 1
-            # mouse_theta = math.atan((self.first_point.y - pos.y)/(ui_state.first_point.x - pos.x + EPSILON))
-            # if abs(pos.x - ui_state.first_point.x) < EPSILON or pos.x < ui_state.first_point.x:
-            #     mouse_theta += math.pi
             mouse_theta = game.atan2(self.first_point, pos)
             farthest_point = game.GamePoint(self.first_point.x + math.cos(mouse_theta)*farthest_dist, self.first_point.y + math.sin(mouse_theta)*farthest_dist)
             created_line = game.GameLine(self.first_point, farthest_point)
@@ -260,23 +344,28 @@ class UIState:
 
         GAME_FONT.render_to(self.window, (20, 25), f"P1 Score: {self.state.scores[0]}", (0, 0, 0))
         GAME_FONT.render_to(self.window, (20, 50), f"P2 Score: {self.state.scores[1]}", (0, 0, 0))
-        GAME_FONT.render_to(self.window, (20, 75), f"{'Red' if self.state.next_player == 1 else 'Blue'} Player to {'Choose' if self.state.area_split_line else 'Move'}", (0, 0, 0))
-        GAME_FONT.render_to(self.window, (20, 100), f"Area Hover Score: {self.hover_score}", (0, 0, 0))
+
+        if self.can_choose_color():
+            GAME_FONT.render_to(self.window, (20, 75), f"Press 1 to play as Red, Press 2 to play as Blue.", (0, 0, 0))
+        else:
+            GAME_FONT.render_to(self.window, (20, 75), f"{'Red' if self.state.next_player == 1 else 'Blue'} Player to {'Choose' if self.state.area_split_line else 'Move'}", (0, 0, 0))
+            GAME_FONT.render_to(self.window, (20, 100), f"Area Hover Score: {self.hover_score}", (0, 0, 0))
+
 
         self.draw_areas()
 
-        if self.area_choice:
+        if self.area_choice and self.can_draw_fill():
             points = [x.pair() for x in self.area_choice.points]
             self.draw_polygon(self.color_to_move, points)
 
         self.draw_lines()
 
-        if self.first_point:
+        if self.first_point and self.can_draw_fill():
             first_line_color = color_translate(self.first_line.color)
             self.draw_circle(first_line_color, self.first_point.pair(), CIRCLE_SIZE)
             self.draw_circle(self.color_to_move, self.first_point.pair(), CIRCLE_SIZE, width=OUTLINE_SIZE)
 
-        if self.second_point:
+        if self.second_point and self.can_draw_fill():
             self.draw_line(self.color_to_move, self.first_point.pair(), self.second_point.pair(), LINE_WIDTH)
             second_line_color = color_translate(self.second_line.color)
             self.draw_circle(second_line_color, self.second_point.pair(), CIRCLE_SIZE)
@@ -315,17 +404,18 @@ def main():
             mouse_position = pygame.mouse.get_pos()
             mouse_position = game.GamePoint((mouse_position[0]-ui_state.pan[0])/ui_state.zoom, (mouse_position[1]-ui_state.pan[1])/ui_state.zoom)
 
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 4:
-                    ui_state.zoom *= 1.5
-                elif event.button == 5:
-                    ui_state.zoom /= 1.5
-                elif event.button == 3:
-                    ui_state.reset()
-                else:
-                    ui_state.mouse_click(mouse_position)
-            if event.type == pygame.MOUSEMOTION:
-                ui_state.mouse_move(mouse_position)
+            if ui_state.can_draw_fill():
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 4:
+                        ui_state.zoom *= 1.5
+                    elif event.button == 5:
+                        ui_state.zoom /= 1.5
+                    elif event.button == 3:
+                        ui_state.cancel_move()
+                    else:
+                        ui_state.mouse_click(mouse_position)
+                if event.type == pygame.MOUSEMOTION:
+                    ui_state.mouse_move(mouse_position)
         keys = pygame.key.get_pressed()  #checking pressed keys
         if keys[pygame.K_w]:
             ui_state.pan[1] += 1
@@ -335,6 +425,11 @@ def main():
             ui_state.pan[1] -= 1
         if keys[pygame.K_d]:
             ui_state.pan[0] -= 1
+        if ui_state.can_choose_color():
+            if keys[pygame.K_1]:
+                ui_state.choose_color(True)
+            if keys[pygame.K_2]:
+                ui_state.choose_color(False)
 
         ui_state.render()
 
