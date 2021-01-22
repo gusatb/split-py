@@ -16,7 +16,51 @@ import math
 EPSILON = 1e-5
 
 
-# Game State
+# Not used in this file
+class GamePlayer:
+    """Represents a player.
+
+    A human playing locally making moves through the UI should use this class as is.
+    Extend these functions for AI, remote play, or alternate UI.
+
+    Attributes:
+        local_human: Whether to wait for a move through the UI or call get_move.
+    """
+    def __init__(self, local_human=True):
+        self.local_human = local_human
+
+    def choose_color(self, state):
+        """Returns whether to choose to play as Red.
+
+        Args:
+            state: GameState.
+        """
+        pass
+
+    def get_move(self, state):
+        """Returns a GameMove for the current color.
+
+        Args:
+            state: GameState to move in.
+        """
+        pass
+
+    def update_color_choice(self, choose_red):
+        """Makes update to internal state given other players move.
+
+        Args:
+            choose_red: Whether the other player chose red.
+        """
+        pass
+
+    def update_move(self, move):
+        """Makes update to internal state given other players move.
+
+        Args:
+            move: Move made by other player.
+        """
+        pass
+
 
 class GamePoint:
     """Represents a point in space.
@@ -405,6 +449,7 @@ class GameState:
         """
         assert self.is_legal_move(move)
         if self.area_split_line is not None:
+            # TODO(gusatb): Check legality of area.
             self.areas.append(move.area)
             self.scores[move.area.color - 1] += move.area.score
             self.area_split_line = None

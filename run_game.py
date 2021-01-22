@@ -2,6 +2,7 @@ import pygame
 import pygame.freetype  # Import the freetype module.
 import game
 import math
+import bots
 
 # Initializing Pygame
 pygame.init()
@@ -23,51 +24,6 @@ EPSILON = game.EPSILON
 CIRCLE_SIZE = 5
 OUTLINE_SIZE = 2
 LINE_WIDTH = 3
-
-
-class GamePlayer:
-    """Represents a player.
-
-    A human playing locally making moves through the UI should use this class as is.
-    Extend these functions for AI, remote play, or alternate UI.
-
-    Attributes:
-        local_human: Whether to wait for a move through the UI or call get_move.
-    """
-    def __init__(self, local_human=True):
-        self.local_human = local_human
-
-    def choose_color(self, state):
-        """Returns whether to choose to play as Red.
-
-        Args:
-            state: GameState.
-        """
-        pass
-
-    def get_move(self, state):
-        """Returns a GameMove for the current color.
-
-        Args:
-            state: GameState to move in.
-        """
-        pass
-
-    def update_color_choice(self, choose_red):
-        """Makes update to internal state given other players move.
-
-        Args:
-            choose_red: Whether the other player chose red.
-        """
-        pass
-
-    def update_move(self, move):
-        """Makes update to internal state given other players move.
-
-        Args:
-            move: Move made by other player.
-        """
-        pass
 
 
 class UIState:
@@ -93,7 +49,7 @@ class UIState:
         intro_state: Which stage of choosing the game is in: 0 - waiting for first line, 1 - waiting for color choice, 2 - normal game
         players: List of GamePlayer.
     """
-    def __init__(self, window, players=[GamePlayer(), GamePlayer()]):
+    def __init__(self, window, players=[game.GamePlayer(), game.GamePlayer()]):
         self.state = game.GameState()
         self.state.new_game()
         self.click_state = 0
@@ -148,12 +104,24 @@ class UIState:
             move: GameMove to make.
         """
         assert self.intro_state != 1
+        line_player = self.state.next_player # used to color area choices
         other_player = self.players[2 - self.state.next_player]
         self.state.make_move(move)
         other_player.update_move(move)
+        self.color_to_move = color_translate(self.state.next_player)
 
         if self.intro_state == 0:
             self.intro_state = 1
+
+
+        if self.players[self.state.next_player - 1].local_human:
+            if self.state.area_split_line is None:
+                self.click_state = 0
+            else:
+                self.click_state = 2
+                self.areas = self.state.get_areas(self.state.area_split_line, color=line_player)
+                self.area_choice = None
+
 
     def cancel_move(self):
         """Resets current move state. Does not effect GameState."""
@@ -228,7 +196,7 @@ class UIState:
         if self.click_state == 0:
             self.click_state = 1
         elif self.click_state == 1:
-            line_player = self.state.next_player
+            # line_player = self.state.next_player
             move = game.GameMove(p1=self.first_point, p1_line=self.first_line, p2=self.second_point, p2_line=self.second_line, area=None)
             self.first_point = None
             self.first_line = None
@@ -238,20 +206,12 @@ class UIState:
                 self.click_state = 0
                 return
             self.make_move(move)
-            if self.state.area_split_line is None:
-                self.click_state = 0
-                self.color_to_move = color_translate(self.state.next_player)
-            else:
-                self.click_state = 2
-                self.areas = self.state.get_areas(self.state.area_split_line, color=line_player)
-                self.area_choice = None
         elif self.click_state == 2:
             move = game.GameMove(area=self.area_choice)
             if not self.state.is_legal_move(move):
                 return
             self.make_move(move)
             self.area_choice = None
-            self.color_to_move = color_translate(self.state.next_player)
             self.click_state = 0
 
     def mouse_move(self, pos):
@@ -356,7 +316,7 @@ class UIState:
 
         if self.area_choice and self.can_draw_fill():
             points = [x.pair() for x in self.area_choice.points]
-            self.draw_polygon(self.color_to_move, points)
+            self.draw_polygon(color_translate(self.area_choice.color), points)
 
         self.draw_lines()
 
@@ -391,11 +351,24 @@ def main():
     window = pygame.display.set_mode((WIDTH, WIDTH))
     pygame.display.set_caption("Split")
 
-    ui_state = UIState(window)
+    ui_state = UIState(window, players=[bots.RandomBot(), game.GamePlayer()])
 
     run = True
 
     while run:
+
+        current_player = ui_state.players[ui_state.state.next_player - 1]
+        other_player = ui_state.players[2 - ui_state.state.next_player]
+        if not current_player.local_human:
+            if ui_state.intro_state == 1:
+                choice = current_player.choose_color(ui_state.state)
+                ui_state.choose_color(choice)
+                other_player.update_color_choice(choice)
+            else:
+                move = current_player.get_move(ui_state.state)
+                ui_state.make_move(move)
+                other_player.update_move(move)
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
