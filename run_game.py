@@ -260,8 +260,8 @@ class UIState:
 
         GAME_FONT.render_to(self.window, (20, 25), f"P1 Score: {self.state.scores[0]}", (0, 0, 0))
         GAME_FONT.render_to(self.window, (20, 50), f"P2 Score: {self.state.scores[1]}", (0, 0, 0))
-        GAME_FONT.render_to(self.window, (20, 75), f"Player {self.state.next_player} to {'choose' if self.state.area_split_line else 'move'}", (0, 0, 0))
-        GAME_FONT.render_to(self.window, (20, 100), f"Area hover score: {self.hover_score}", (0, 0, 0))
+        GAME_FONT.render_to(self.window, (20, 75), f"{'Red' if self.state.next_player == 1 else 'Blue'} Player to {'Choose' if self.state.area_split_line else 'Move'}", (0, 0, 0))
+        GAME_FONT.render_to(self.window, (20, 100), f"Area Hover Score: {self.hover_score}", (0, 0, 0))
 
         self.draw_areas()
 
