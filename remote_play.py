@@ -40,7 +40,8 @@ class RemotePlayer(game.GamePlayer):
         Args:
             state: GameState to move in.
         """
-        pass
+        data = self.s.recv(1024)
+        return game.GameMove.deserialize(data, state)
 
     def update_color_choice(self, choose_red):
         """Makes update to internal state given other players move.
@@ -56,7 +57,7 @@ class RemotePlayer(game.GamePlayer):
         Args:
             move: Move made by other player.
         """
-        pass
+        self.s.send(move.serialize())
 
 
 # Create and run a server that forwards messages from any client to all others.
@@ -65,15 +66,15 @@ if __name__ == '__main__':
 
     connections = []
 
-    def on_new_client(clientsocket, connections, addr, num_clients):
+    def on_new_client(client_socket, connections, addr, num_clients):
         print(f'Connected to client {num_clients}: {addr}')
-        clientsocket.send(bytes([num_clients]))
+        client_socket.send(bytes([num_clients]))
         while True:
-            msg = clientsocket.recv(1024)
+            msg = client_socket.recv(1024)
             for c in connections:
                 if c != client_socket:
                     c.send(msg)
-        clientsocket.close()
+        client_socket.close()
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 

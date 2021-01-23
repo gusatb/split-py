@@ -11,6 +11,7 @@ Rules:
 """
 
 import math
+import struct
 
 
 EPSILON = 1e-5
@@ -75,9 +76,12 @@ class GamePoint:
         self.y = y
         self.lines = []
 
+    def is_at_xy(self, x, y):
+        return self.x == x and self.y == y
+
     def is_at(self, point):
         """Returns whether or not the given point is at the same location as this."""
-        return self.x == point.x and self.y == point.y
+        return self.is_at_xy(point.x, point.y)
 
     def pair(self):
         """Returns tuple containing x and y coordinates."""
@@ -245,6 +249,63 @@ class GameMove:
         self.p2_line = p2_line
         self.area = area
 
+    def serialize(self):
+        """Returns byte array representing GameMove object.
+
+        First byte is 0 if line_move else 1.
+        If line move: four floats are packed representing p1 x,y and p2 x,y.
+        Else: int is packed (num of points) followed by 2 floats per point.
+        """
+        pack_types = '='
+        pack_objs = []
+
+        # Move type
+        pack_types += 'i'
+        pack_objs.append(0 if self.line_move else 1)
+
+        if self.line_move:
+            pack_types += 'ffff'
+            pack_objs.extend([self.p1.x, self.p1.y, self.p2.x, self.p2.y])
+        else:
+            pack_types += 'i'
+            pack_objs.append(len(self.area.points))
+            pack_types += 'ff' * len(self.area.points)
+            for p in self.area.points:
+                pack_objs.extend([p.x, p.y])
+        return struct.pack(pack_types, *pack_objs)
+
+    @classmethod
+    def deserialize(cls, byte_array, state):
+        """Returns GameMove represented by byte_array.
+
+        Args:
+            byte_array: Array of bytes representing GameMove.
+            state: GameState object.
+        """
+        line_move = struct.unpack_from('=i', byte_array, offset=0)[0] == 0
+        if line_move:
+            all_coordinates = struct.unpack_from('=ffff', byte_array, offset=4)
+            p1 = GamePoint(*all_coordinates[:2])
+            p2 = GamePoint(*all_coordinates[2:])
+
+            # Find lines
+            p1_line, p2_line = None, None
+            for line in state.lines:
+                if not p1_line and line.contains(p1):
+                    p1_line = line
+                elif not p2_line and line.contains(p2):
+                    p2_line = line
+                if p1_line and p2_line:
+                    break
+            return GameMove(p1=p1, p1_line=p1_line, p2=p2, p2_line=p2_line)
+        else:
+            n_points = struct.unpack_from('=i', byte_array, offset=4)[0]
+            all_coordinates = struct.unpack_from('=' + 'ff'*n_points, byte_array, offset=8)
+            points = [state.get_point_at_location(*all_coordinates[i*2:i*2+2]) for i in range(n_points)]
+            color = 3 - state.next_player
+            area = GameArea(points, state, color)
+            return GameMove(area=area)
+
 
 class GameState:
     """Represents the state of the game.
@@ -283,6 +344,16 @@ class GameState:
             GameLine(p4, p1, -1, add_self_to_points=True),
         ]
         self.scores = [0, 0]
+
+    def get_point_at_location(self, x, y):
+        temp_p = GamePoint(x, y)
+        dists = {}
+        for l in self.lines:
+            for p in l.endpoints:
+                if p not in dists:
+                    dists[p] = p.distance(temp_p)
+        p_dists = list(dists.items())
+        return min(p_dists, key=lambda x: x[1])[0]
 
     def get_game_area(self):
         """Returns GameArea containing the entire playable area."""

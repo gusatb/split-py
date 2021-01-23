@@ -96,6 +96,7 @@ class UIState:
             self.players.append(p0)
         other_player.update_color_choice(choose_red)
         self.intro_state = 2
+        self.cancel_move()
 
 
     def make_move(self, move):
