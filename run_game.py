@@ -4,6 +4,9 @@ import game
 import math
 import bots
 import remote_play
+import sys
+import random
+
 
 # Initializing Pygame
 pygame.init()
@@ -349,21 +352,28 @@ def color_translate(color_id):
     elif color_id == 2:
         return BLUE
 
-def main():
+def main(argv):
+
+    if len(argv) == 1:
+        print('To play against bot or local, run binary with appropriate flags:')
+        print('\tpython3 run_game.py bot')
+        print('\tpython3 run_game.py remote SERVER_ADDRESS')
+
     window = pygame.display.set_mode((WIDTH, WIDTH))
     pygame.display.set_caption("Split")
 
-    opponent = 'remote' # bot/local/remote
+    opponent = 'local' if len(argv) == 1 else argv[1] # bot/local/remote
 
     if opponent == 'remote':
-        ui_state = UIState(window, players=[remote_play.RemotePlayer('127.0.0.1'), game.GamePlayer()])
+        host = argv[2]
+        ui_state = UIState(window, players=[remote_play.RemotePlayer(host), game.GamePlayer()])
         if ui_state.players[0].client_id == 0:
             temp_p = ui_state.players.pop(0)
             ui_state.players.append(temp_p)
     else:
         opponent_player = bots.RandomBot() if opponent == 'bot' else game.GamePlayer()
-        # TODO: Shuffle players.
         ui_state = UIState(window, players=[opponent_player, game.GamePlayer()])
+        random.shuffle(ui_state.players)
 
 
     run = True
@@ -421,4 +431,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv)
