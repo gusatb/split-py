@@ -3,6 +3,7 @@ import pygame.freetype  # Import the freetype module.
 import game
 import math
 import bots
+import remote_play
 
 # Initializing Pygame
 pygame.init()
@@ -351,7 +352,18 @@ def main():
     window = pygame.display.set_mode((WIDTH, WIDTH))
     pygame.display.set_caption("Split")
 
-    ui_state = UIState(window, players=[bots.RandomBot(), game.GamePlayer()])
+    opponent = 'remote' # bot/local/remote
+
+    if opponent == 'remote':
+        ui_state = UIState(window, players=[remote_play.RemotePlayer('127.0.0.1'), game.GamePlayer()])
+        if ui_state.players[0].client_id == 0:
+            temp_p = ui_state.players.pop(0)
+            ui_state.players.append(temp_p)
+    else:
+        opponent_player = bots.RandomBot() if opponent == 'bot' else game.GamePlayer()
+        # TODO: Shuffle players.
+        ui_state = UIState(window, players=[opponent_player, game.GamePlayer()])
+
 
     run = True
 
@@ -407,6 +419,5 @@ def main():
         ui_state.render()
 
 
-while True:
-    if __name__ == '__main__':
-        main()
+if __name__ == '__main__':
+    main()
