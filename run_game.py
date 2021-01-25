@@ -253,6 +253,9 @@ class UIState:
             self.first_line = self.state.lines[closest_point_index]
 
         elif self.click_state == 1:
+            if not self.first_point:
+                self.cancel_move()
+                return
             farthest_dist = self.state.width * math.sqrt(2) + 1
             mouse_theta = game.atan2(self.first_point, pos)
             farthest_point = game.GamePoint(self.first_point.x + math.cos(mouse_theta)*farthest_dist, self.first_point.y + math.sin(mouse_theta)*farthest_dist)
