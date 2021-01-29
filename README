@@ -1,0 +1,11 @@
+Requires pygame:
+	python3 -m pip install pygame
+
+Run with:
+	python3 rungame.py # Local 2 player
+	python3 rungame.py bot
+	python3 rungame.py remote [SERVER_ADDRESS]
+
+Start server with:
+	python3 remote_play.py
+
